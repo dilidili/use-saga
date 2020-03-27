@@ -1,2 +1,5 @@
 
-export { default } from './core/useSaga';
+import useSaga from './core/useSaga';
+export * from './helpers';
+
+export default useSaga;

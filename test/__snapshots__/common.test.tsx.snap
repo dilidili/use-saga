@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`Link changes the class when hovered 1`] = `
+exports[`common AJAX request 1`] = `
 <div
   onClick={[Function]}
 >
@@ -8,7 +8,7 @@ exports[`Link changes the class when hovered 1`] = `
 </div>
 `;
 
-exports[`Link changes the class when hovered 2`] = `
+exports[`common AJAX request 2`] = `
 <div
   onClick={[Function]}
 >
@@ -16,10 +16,52 @@ exports[`Link changes the class when hovered 2`] = `
 </div>
 `;
 
-exports[`Link changes the class when hovered 3`] = `
+exports[`common AJAX request 3`] = `
 <div
   onClick={[Function]}
 >
   error
+</div>
+`;
+
+exports[`useFetch helper 1`] = `
+<div
+  onClick={[Function]}
+>
+  <div>
+    empty
+  </div>
+  ;
+  <div>
+    complete
+  </div>
+</div>
+`;
+
+exports[`useFetch helper 2`] = `
+<div
+  onClick={[Function]}
+>
+  <div>
+    leisure life
+  </div>
+  ;
+  <div>
+    complete
+  </div>
+</div>
+`;
+
+exports[`useFetch helper 3`] = `
+<div
+  onClick={[Function]}
+>
+  <div>
+    error
+  </div>
+  ;
+  <div>
+    complete
+  </div>
 </div>
 `;

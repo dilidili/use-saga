@@ -1,11 +1,10 @@
-import useSaga from '../src';
+import useSaga, { useFetch } from '../src';
 import React from 'react';
 import renderer from 'react-test-renderer';
-import { actionChannel } from 'redux-saga/effects';
 
 const Api = {
-  fetchUser: function* () {
-    return { id: 'test' };
+  fetchUser: function* (id = 'test') {
+    return { id };
   },
 };
 
@@ -18,7 +17,7 @@ export function* fetchDataFail(action, { put }) {
   yield put({ type: "FETCH_FAILED", error: new Error() });
 }
 
-test('Using Saga Helpers', function() {
+test('common AJAX request', function() {
   const Test: React.FC<{ fetchData }> = ({ fetchData }) => {
     const [state, dispatch] = useSaga<{
       data: {
@@ -66,6 +65,47 @@ test('Using Saga Helpers', function() {
   let failComponent;
   renderer.act(() => {
     failComponent = renderer.create(<Test fetchData={fetchDataFail} />);
+  });
+
+  let failTree = failComponent.toJSON();
+  renderer.act(() => {
+    failTree.props.onClick();
+  });
+
+  failTree = failComponent.toJSON();
+  expect(failTree).toMatchSnapshot();
+});
+
+test('useFetch helper', () => {
+  const Test: React.FC<{ fetchData }> = ({ fetchData }) => {
+    const [fetchUser, { start }] = useFetch(fetchData);
+
+    return <div onClick={() => start('leisure life')}>
+      <div>{fetchUser.error ? 'error' : fetchUser.data ? fetchUser.data.id : 'empty'}</div>
+      <div>{fetchUser.loading ? 'loading' : 'complete'}</div>
+    </div>
+  };
+
+  // success flow
+  let component
+  renderer.act(() => {
+    component = renderer.create(<Test fetchData={Api.fetchUser} />);
+  });
+
+  let tree = component.toJSON();
+  expect(tree).toMatchSnapshot();
+
+  renderer.act(() => {
+    tree.props.onClick();
+  });
+
+  tree = component.toJSON();
+  expect(tree).toMatchSnapshot();
+
+  // fail flow
+  let failComponent;
+  renderer.act(() => {
+    failComponent = renderer.create(<Test fetchData={function *() { throw Error() }} />);
   });
 
   let failTree = failComponent.toJSON();

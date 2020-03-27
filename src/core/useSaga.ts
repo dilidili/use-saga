@@ -1,5 +1,5 @@
 import { useReducer, Reducer, useEffect, useRef } from 'react';
-import { runSaga, stdChannel, channel, Saga } from 'redux-saga';
+import { runSaga, stdChannel, Saga } from 'redux-saga';
 import { takeEvery, call, put } from 'redux-saga/effects'
 
 interface Action {
@@ -30,7 +30,6 @@ export default function useSaga<S = {}>(model: Model<S>): [S, (action: Action) =
   const [state, dispatch] = useReducer(reducer, initialState);
 
   // effects
-  const refSaga = useRef<{} | null>(null);
   const refState = useRef<S>(state);
   const refDispatch = useRef(dispatch);
   const refChannel = useRef(stdChannel());
@@ -40,7 +39,7 @@ export default function useSaga<S = {}>(model: Model<S>): [S, (action: Action) =
     refDispatch.current = dispatch; 
   }, [state, dispatch]);
 
-  const memoizedValue = useEffect(() => {
+  useEffect(() => {
     const boundRunSaga = runSaga.bind(null, {
       channel: refChannel.current,
       dispatch: (...args) => refDispatch.current.apply(null, args),
