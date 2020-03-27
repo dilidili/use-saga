@@ -1,4 +1,4 @@
-import useSaga, { useFetch } from '../src';
+import useSaga, { useFetch, } from '../src';
 import React from 'react';
 import renderer from 'react-test-renderer';
 

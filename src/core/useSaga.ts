@@ -1,6 +1,7 @@
 import { useReducer, Reducer, useEffect, useRef } from 'react';
 import { runSaga, stdChannel, Saga } from 'redux-saga';
 import { takeEvery, call, put } from 'redux-saga/effects'
+import * as sagaEffects from 'redux-saga/effects';
 
 interface Action {
   type: string;
@@ -50,7 +51,7 @@ export default function useSaga<S = {}>(model: Model<S>): [S, (action: Action) =
       const keys = Object.keys(effects);
       for(let i = 0; i < keys.length; i++) {
         yield takeEvery(keys[i], function* (action) {
-          yield effects[keys[i]](action, { call, put });
+          yield effects[keys[i]](action, sagaEffects);
         });
       }
     });
