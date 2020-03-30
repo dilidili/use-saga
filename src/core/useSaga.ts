@@ -1,6 +1,6 @@
-import { useReducer, Reducer, useEffect, useRef } from 'react';
-import { runSaga, stdChannel, Saga } from 'redux-saga';
-import { takeEvery, call, put } from 'redux-saga/effects'
+import { useReducer, Reducer, useEffect, useRef, useMemo, } from 'react';
+import { runSaga, stdChannel, Saga, Task } from 'redux-saga';
+import { takeEvery, } from 'redux-saga/effects'
 import * as sagaEffects from 'redux-saga/effects';
 
 interface Action {
@@ -18,6 +18,20 @@ type Model<S> = {
   },
 }
 
+const defaultReducerKey = (v: string) => `update${v.slice(0, 1).toUpperCase()}${v.slice(1)}`;
+
+const setStateEffect = function *(state) {
+  const keys = Object.keys(state);
+
+  for(let i = 0; i < keys.length; i++) {
+    const key = keys[i];
+
+    yield sagaEffects.put({
+      type: defaultReducerKey(key),
+      [key]: state[key],
+    });
+  }
+}
 
 export default function useSaga<S = {}>(model: Model<S>): [S, (action: Action) => void] {
   const {
@@ -27,7 +41,15 @@ export default function useSaga<S = {}>(model: Model<S>): [S, (action: Action) =
   } = model;
 
   // reducers
-  const reducer = (prevState: S, action: Action) => Object.keys(reducers).reduce((r, v) => v === action.type ? reducers[v](prevState, action) : r, prevState);
+  const reducer = useMemo(() => {
+    // default state updater
+    const stateUpdater = Object.keys(initialState || {}).reduce<Object>((r, v) => ({ ...r, [defaultReducerKey(v)]: (state, action) => {
+      return ({ ...state, [v]: action[v] })
+    } }), {});
+    const finalReducers = { ...stateUpdater, ...reducers};
+
+    return (prevState: S, action: Action) => Object.keys(finalReducers).reduce((r, v) => v === action.type ? finalReducers[v](prevState, action) : r, prevState);
+  }, [model]);
   const [state, dispatch] = useReducer(reducer, initialState);
 
   // effects
@@ -47,17 +69,24 @@ export default function useSaga<S = {}>(model: Model<S>): [S, (action: Action) =
       getState: () => refState.current,
     });
 
-    boundRunSaga(function *() {
+    const task: Task = boundRunSaga(function *() {
       const keys = Object.keys(effects);
+
       for(let i = 0; i < keys.length; i++) {
         yield takeEvery(keys[i], function* (action) {
-          yield effects[keys[i]](action, sagaEffects);
+          yield effects[keys[i]](action, { ...sagaEffects, setState: setStateEffect });
         });
       }
     });
+
+    return () => {
+      task && task.cancel();
+      refChannel.current && refChannel.current.close();
+    };
   }, []);
 
   return [state, (action: Action) => {
+    refDispatch.current(action);
     refChannel.current.put(action)
   }];
 };

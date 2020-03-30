@@ -24,6 +24,29 @@ exports[`common AJAX request 3`] = `
 </div>
 `;
 
+exports[`default state updater 1`] = `
+<div
+  onClick={[Function]}
+>
+  <div>
+    1
+  </div>
+</div>
+`;
+
+exports[`setState effect 1`] = `
+<div
+  onClick={[Function]}
+>
+  <div>
+    2
+  </div>
+  <div>
+    true
+  </div>
+</div>
+`;
+
 exports[`useFetch helper 1`] = `
 <div
   onClick={[Function]}
@@ -31,7 +54,6 @@ exports[`useFetch helper 1`] = `
   <div>
     empty
   </div>
-  ;
   <div>
     complete
   </div>
@@ -45,7 +67,6 @@ exports[`useFetch helper 2`] = `
   <div>
     leisure life
   </div>
-  ;
   <div>
     complete
   </div>
@@ -59,7 +80,6 @@ exports[`useFetch helper 3`] = `
   <div>
     error
   </div>
-  ;
   <div>
     complete
   </div>

@@ -116,3 +116,64 @@ test('useFetch helper', () => {
   failTree = failComponent.toJSON();
   expect(failTree).toMatchSnapshot();
 });
+
+test('default state updater', () => {
+  const Test: React.FC = () => {
+    const [{ count }, dispatch] = useSaga({
+      state: {
+        count: 0,
+      },
+    });
+
+    return <div onClick={() => dispatch({ type: 'updateCount', count: 1 })}>
+      <div>{count}</div>
+    </div>
+  };
+
+  let component
+  renderer.act(() => {
+    component = renderer.create(<Test />);
+  });
+  let tree = component.toJSON();
+  renderer.act(() => {
+    tree.props.onClick();
+  });
+  tree = component.toJSON();
+  expect(tree).toMatchSnapshot();
+});
+
+test('setState effect', () => {
+  const Test: React.FC = () => {
+    const [{ count, touched }, dispatch] = useSaga({
+      state: {
+        count: 0,
+        touched: false,
+      },
+
+      effects: {
+        updateCount: function *({ count }, { setState }) {
+          yield setState({
+            count,
+            touched: true,
+          });
+        },
+      },
+    });
+
+    return <div onClick={() => dispatch({ type: 'updateCount', count: 2 })}>
+      <div>{count}</div>
+      <div>{touched + ''}</div>
+    </div>
+  };
+
+  let component
+  renderer.act(() => {
+    component = renderer.create(<Test />);
+  });
+  let tree = component.toJSON();
+  renderer.act(() => {
+    tree.props.onClick();
+  });
+  tree = component.toJSON();
+  expect(tree).toMatchSnapshot();
+});
