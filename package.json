@@ -1,9 +1,10 @@
 {
   "name": "react-use-saga",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "description": "",
   "main": "./lib/index.js",
   "scripts": {
+    "prepublish": "npm run build",
     "test": "jest",
     "build": "father-build"
   },
@@ -17,6 +18,9 @@
   ],
   "author": "",
   "license": "ISC",
+  "files": [
+    "lib"
+  ],
   "bugs": {
     "url": "https://github.com/dilidili/use-saga/issues"
   },

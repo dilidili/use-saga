@@ -1,7 +1,9 @@
-import { useReducer, Reducer, useEffect, useRef, useMemo, } from 'react';
+import { Reducer, useEffect, useState, useRef, } from 'react';
 import { runSaga, stdChannel, Saga, Task } from 'redux-saga';
+import { createStore, applyMiddleware, Store, Dispatch } from 'redux';
 import { takeEvery, } from 'redux-saga/effects'
 import * as sagaEffects from 'redux-saga/effects';
+import { check } from '../uitls';
 
 interface Action {
   type: string;
@@ -33,6 +35,12 @@ const setStateEffect = function *(state) {
   }
 }
 
+const isEffectConflict = ([effects, initialState]) => {
+  const eKeys = Object.keys(effects), sKeys = Object.keys(initialState);
+
+  return !sKeys.some(v => ~eKeys.indexOf(defaultReducerKey(v)));
+}
+
 export default function useSaga<S = {}>(model: Model<S>): [S, (action: Action) => void] {
   const {
     state: initialState,
@@ -40,33 +48,40 @@ export default function useSaga<S = {}>(model: Model<S>): [S, (action: Action) =
     effects = {},
   } = model;
 
-  // reducers
-  const reducer = useMemo(() => {
-    // default state updater
+  const [sagaState, setSagaState] = useState<S>(initialState);
+  const refStore = useRef<Store | null>(null);
+
+  useEffect(() => {
+    // reducer
     const stateUpdater = Object.keys(initialState || {}).reduce<Object>((r, v) => ({ ...r, [defaultReducerKey(v)]: (state, action) => {
       return ({ ...state, [v]: action[v] })
-    } }), {});
+    } }), {}); // default state updater
     const finalReducers = { ...stateUpdater, ...reducers};
+    const reducer = (prevState: S = initialState, action: Action) => Object.keys(finalReducers).reduce((r, v) => v === action.type ? finalReducers[v](prevState, action) : r, prevState);
 
-    return (prevState: S, action: Action) => Object.keys(finalReducers).reduce((r, v) => v === action.type ? finalReducers[v](prevState, action) : r, prevState);
-  }, [model]);
-  const [state, dispatch] = useReducer(reducer, initialState);
+    check([effects, initialState], isEffectConflict, `react-use-saga: effect passed by useSaga() should not named as "${defaultReducerKey('stateName')}"`);
 
-  // effects
-  const refState = useRef<S>(state);
-  const refDispatch = useRef(dispatch);
-  const refChannel = useRef(stdChannel());
+    // store
+    const channel = stdChannel();
+    let boundRunSaga;
+    const sagaMiddleware = ({ getState, dispatch }) => {
+      boundRunSaga = runSaga.bind(null, {
+        channel: channel,
+        dispatch,
+        getState,
+      });
 
-  useEffect(() => {
-    refState.current = state; 
-    refDispatch.current = dispatch; 
-  }, [state, dispatch]);
+      return next => action => {
+        const result = next(action); // hit reducers
+        channel.put(action);
+        return result;
+      }
+    } 
+    const store = applyMiddleware(sagaMiddleware)(createStore)(reducer);
+    refStore.current = store;
 
-  useEffect(() => {
-    const boundRunSaga = runSaga.bind(null, {
-      channel: refChannel.current,
-      dispatch: (...args) => refDispatch.current.apply(null, args),
-      getState: () => refState.current,
+    const unsubscribe = store.subscribe(() => {
+      setSagaState(store.getState());
     });
 
     const task: Task = boundRunSaga(function *() {
@@ -81,12 +96,12 @@ export default function useSaga<S = {}>(model: Model<S>): [S, (action: Action) =
 
     return () => {
       task && task.cancel();
-      refChannel.current && refChannel.current.close();
+      unsubscribe && unsubscribe();
+      channel.close();
     };
   }, []);
 
-  return [state, (action: Action) => {
-    refDispatch.current(action);
-    refChannel.current.put(action)
+  return [sagaState, (action: Action) => {
+    refStore.current && refStore.current.dispatch(action);
   }];
 };

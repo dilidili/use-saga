@@ -151,7 +151,7 @@ test('setState effect', () => {
       },
 
       effects: {
-        updateCount: function *({ count }, { setState }) {
+        updateCountEffect: function *({ count }, { setState }) {
           yield setState({
             count,
             touched: true,
@@ -160,7 +160,7 @@ test('setState effect', () => {
       },
     });
 
-    return <div onClick={() => dispatch({ type: 'updateCount', count: 2 })}>
+    return <div onClick={() => dispatch({ type: 'updateCountEffect', count: 2 })}>
       <div>{count}</div>
       <div>{touched + ''}</div>
     </div>
