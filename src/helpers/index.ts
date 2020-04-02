@@ -1,55 +1,64 @@
 import { Saga } from 'redux-saga';
 import { useCallback } from 'react';
-import useSaga from '../core/useSaga';
+import useSaga, { Model, extendModel } from '../core/useSaga';
 
 type useFetchState = {
   loading: boolean;
   data: any | null;
   error: Error | null;
-}; 
+};
 
-export const useFetch = (saga: Saga): [useFetchState, { start: Function }] => {
+const actionTypes = {
+  startFetch: 'FETCH_REQUESTED',
+  fetchInProgress: 'FETCH_IN_PROGRESS',
+  fetchSucceed: 'FETCH_SUCCEED',
+  fetchFailed: 'FETCH_FAILED',
+};
+
+export const useFetch = (saga: Saga, modelFactory?: (types: typeof actionTypes) => Model<any>): [useFetchState, { startFetch: Function, dispatch: Function }] => {
+  const model = modelFactory ? modelFactory(actionTypes) : {};
+
   const fetchDataSaga = useCallback(function* (action, { call, put }) {
     yield put({
-      type: 'FETCH_IN_PROGRESS',
+      type: actionTypes.fetchInProgress,
     });
 
     try {
       const data = yield call(saga, ...action.args);
       yield put({
-        type: 'FETCH_SUCCEEDED',
+        type: actionTypes.fetchSucceed,
         data,
       });
     } catch(error) {
       yield put({
-        type: 'FETCH_FAILED',
+        type: actionTypes.fetchFailed,
         error,
       });
     }
   }, [saga]);
 
-  const [state, dispatch] = useSaga<useFetchState>({
+  const [state, dispatch] = useSaga<any | useFetchState>(extendModel({
     state: {
       loading: false,
       data: null,
       error: null,
     },
     reducers: {
-      ['FETCH_SUCCEEDED']: (_, { data }) => {
+      [actionTypes.fetchSucceed]: (_, { data }) => {
         return {
           loading: false,
           error: null,
           data,
         }
       },
-      ['FETCH_FAILED']: (_, { error }) => {
+      [actionTypes.fetchFailed]: (_, { error }) => {
         return {
           data: null,
           loading: false,
           error,
         }
       },
-      [`FETCH_IN_PROGRESS`]: (state) => {
+      [actionTypes.fetchInProgress]: (state) => {
         return {
           ...state,
           loading: true,
@@ -57,11 +66,12 @@ export const useFetch = (saga: Saga): [useFetchState, { start: Function }] => {
       },
     },
     effects: {
-      ['FETCH_REQUESTED']: fetchDataSaga,
+      [actionTypes.startFetch]: fetchDataSaga,
     },
-  });
+  }, model));
 
   return [state, {
-    start: (...args) => dispatch({ type: 'FETCH_REQUESTED', args, }),
+    startFetch: (...args) => dispatch({ type: actionTypes.startFetch, args, }),
+    dispatch,
   }];
 };

@@ -9,3 +9,13 @@ exports[`put effect can trigger another effect 1`] = `
   </div>
 </div>
 `;
+
+exports[`useFetch effect can combine with a custom model 1`] = `
+<div
+  onClick={[Function]}
+>
+  <div>
+    target
+  </div>
+</div>
+`;

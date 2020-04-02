@@ -41,3 +41,34 @@ test('put effect can trigger another effect', () => {
   tree = component.toJSON();
   expect(tree).toMatchSnapshot();
 });
+
+test('useFetch effect can combine with a custom model', () => {
+  const Test: React.FC = () => {
+    const [fetchUser, { startFetch, dispatch }] = useFetch(function *(id) { return { id, } }, (fetchTypes) => ({
+      effects: {
+        [fetchTypes.fetchSucceed]: function *(_, { setState }) {
+          yield setState({
+            data: 'target',
+            error: null,
+            loading: false,
+          });
+        },
+      },
+    }));
+
+    return <div onClick={() => startFetch(1)}>
+      <div>{fetchUser.data}</div>
+    </div>
+  };
+
+  let component
+  renderer.act(() => {
+    component = renderer.create(<Test />);
+  });
+  let tree = component.toJSON();
+  renderer.act(() => {
+    tree.props.onClick();
+  });
+  tree = component.toJSON();
+  expect(tree).toMatchSnapshot();
+});

@@ -10,8 +10,8 @@ interface Action {
   [key: string]: any;
 };
 
-type Model<S> = {
-  state: any,
+export type Model<S = {}> = {
+  state?: S,
   reducers?: {
     [key: string]: Reducer<S, Action>;
   },
@@ -21,6 +21,23 @@ type Model<S> = {
 }
 
 const defaultReducerKey = (v: string) => `update${v.slice(0, 1).toUpperCase()}${v.slice(1)}`;
+
+export const extendModel = (a: Model = {}, b: Model = {}): Model => {
+  return {
+    state: {
+      ...(a.state || {}),
+      ...(b.state || {})
+    },
+    reducers: {
+      ...(a.reducers || {}),
+      ...(b.reducers || {})
+    },
+    effects: {
+      ...(a.effects || {}),
+      ...(b.effects || {})
+    }
+  }
+}
 
 const setStateEffect = function *(state) {
   const keys = Object.keys(state);
@@ -41,7 +58,7 @@ const isEffectConflict = ([effects, initialState]) => {
   return !sKeys.some(v => ~eKeys.indexOf(defaultReducerKey(v)));
 }
 
-export default function useSaga<S = {}>(model: Model<S>): [S, (action: Action) => void] {
+export default function useSaga<S>(model: Model<S>): [S, (action: Action) => void] {
   const {
     state: initialState,
     reducers = {},

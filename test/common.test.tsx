@@ -78,9 +78,9 @@ test('common AJAX request', function() {
 
 test('useFetch helper', () => {
   const Test: React.FC<{ fetchData }> = ({ fetchData }) => {
-    const [fetchUser, { start }] = useFetch(fetchData);
+    const [fetchUser, { startFetch }] = useFetch(fetchData);
 
-    return <div onClick={() => start('leisure life')}>
+    return <div onClick={() => startFetch('leisure life')}>
       <div>{fetchUser.error ? 'error' : fetchUser.data ? fetchUser.data.id : 'empty'}</div>
       <div>{fetchUser.loading ? 'loading' : 'complete'}</div>
     </div>
