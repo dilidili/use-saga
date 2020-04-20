@@ -3,12 +3,15 @@ import { runSaga, stdChannel, Saga, Task } from 'redux-saga';
 import { createStore, applyMiddleware, Store, Dispatch } from 'redux';
 import { takeEvery, } from 'redux-saga/effects'
 import * as sagaEffects from 'redux-saga/effects';
+import Plugin from './Plugin';
 import { check } from '../uitls';
 
-interface Action {
+export interface Action {
   type: string;
   [key: string]: any;
 };
+
+export type Effect = Saga<[Action, typeof sagaEffects & { setState: typeof setStateEffect }]>
 
 export type Model<S = {}> = {
   state?: S,
@@ -16,28 +19,12 @@ export type Model<S = {}> = {
     [key: string]: Reducer<S, Action>;
   },
   effects?: {
-    [key: string]: Saga;
+    [key: string]: Effect;
   },
+  plugins?: Plugin[],
 }
 
 const defaultReducerKey = (v: string) => `update${v.slice(0, 1).toUpperCase()}${v.slice(1)}`;
-
-export const extendModel = (a: Model = {}, b: Model = {}): Model => {
-  return {
-    state: {
-      ...(a.state || {}),
-      ...(b.state || {})
-    },
-    reducers: {
-      ...(a.reducers || {}),
-      ...(b.reducers || {})
-    },
-    effects: {
-      ...(a.effects || {}),
-      ...(b.effects || {})
-    }
-  }
-}
 
 const setStateEffect = function *(state) {
   const keys = Object.keys(state);
@@ -59,11 +46,17 @@ const isEffectConflict = ([effects, initialState]) => {
 }
 
 export default function useSaga<S>(model: Model<S>): [S, (action: Action) => void] {
-  const {
+  let {
     state: initialState,
     reducers = {},
     effects = {},
+    plugins = [],
   } = model;
+
+  if (plugins.length) {
+    initialState = plugins.reduce((r, v) => v.applyState<S>(r), initialState);
+    effects = plugins.reduce((r, v) => v.applyEffect(r), effects);
+  }
 
   const [sagaState, setSagaState] = useState<S>(initialState);
   const refStore = useRef<Store | null>(null);
@@ -73,7 +66,10 @@ export default function useSaga<S>(model: Model<S>): [S, (action: Action) => voi
     const stateUpdater = Object.keys(initialState || {}).reduce<Object>((r, v) => ({ ...r, [defaultReducerKey(v)]: (state, action) => {
       return ({ ...state, [v]: action[v] })
     } }), {}); // default state updater
-    const finalReducers = { ...stateUpdater, ...reducers};
+    let finalReducers = { ...stateUpdater, ...reducers };
+    if (plugins.length) {
+      finalReducers = plugins.reduce((r, v) => v.applyReducer(r), finalReducers);
+    }
     const reducer = (prevState: S = initialState, action: Action) => Object.keys(finalReducers).reduce((r, v) => v === action.type ? finalReducers[v](prevState, action) : r, prevState);
 
     check([effects, initialState], isEffectConflict, `react-use-saga: effect passed by useSaga() should not named as "${defaultReducerKey('stateName')}"`);

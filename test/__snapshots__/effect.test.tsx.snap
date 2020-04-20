@@ -5,12 +5,12 @@ exports[`put effect can trigger another effect 1`] = `
   onClick={[Function]}
 >
   <div>
-    1
+    2
   </div>
 </div>
 `;
 
-exports[`useFetch effect can combine with a custom model 1`] = `
+exports[`useFetch plugin 1`] = `
 <div
   onClick={[Function]}
 >

@@ -1,4 +1,5 @@
-import useSaga, { useFetch, } from '../src';
+import useSaga from '../src';
+import { Effect } from '../src/core/useSaga';
 import React from 'react';
 import renderer from 'react-test-renderer';
 
@@ -8,7 +9,7 @@ const Api = {
   },
 };
 
-export function* fetchData(action, { call, put }) {
+export const fetchData: Effect = function* (action, { call, put }) {
   const data = yield call(Api.fetchUser, action.url);
   yield put({ type: "FETCH_SUCCEEDED", data });
 }
@@ -65,47 +66,6 @@ test('common AJAX request', function() {
   let failComponent;
   renderer.act(() => {
     failComponent = renderer.create(<Test fetchData={fetchDataFail} />);
-  });
-
-  let failTree = failComponent.toJSON();
-  renderer.act(() => {
-    failTree.props.onClick();
-  });
-
-  failTree = failComponent.toJSON();
-  expect(failTree).toMatchSnapshot();
-});
-
-test('useFetch helper', () => {
-  const Test: React.FC<{ fetchData }> = ({ fetchData }) => {
-    const [fetchUser, { startFetch }] = useFetch(fetchData);
-
-    return <div onClick={() => startFetch('leisure life')}>
-      <div>{fetchUser.error ? 'error' : fetchUser.data ? fetchUser.data.id : 'empty'}</div>
-      <div>{fetchUser.loading ? 'loading' : 'complete'}</div>
-    </div>
-  };
-
-  // success flow
-  let component
-  renderer.act(() => {
-    component = renderer.create(<Test fetchData={Api.fetchUser} />);
-  });
-
-  let tree = component.toJSON();
-  expect(tree).toMatchSnapshot();
-
-  renderer.act(() => {
-    tree.props.onClick();
-  });
-
-  tree = component.toJSON();
-  expect(tree).toMatchSnapshot();
-
-  // fail flow
-  let failComponent;
-  renderer.act(() => {
-    failComponent = renderer.create(<Test fetchData={function *() { throw Error() }} />);
   });
 
   let failTree = failComponent.toJSON();

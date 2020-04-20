@@ -1,77 +1,86 @@
 import { Saga } from 'redux-saga';
 import { useCallback } from 'react';
-import useSaga, { Model, extendModel } from '../core/useSaga';
+import { Model, Action } from '../core/useSaga';
+import Plugin from '../core/Plugin';
 
-type useFetchState = {
-  loading: boolean;
-  data: any | null;
-  error: Error | null;
+type ActionTypes = {
+  start: string;
+  failed: string;
+  succeed: string;
+  begin: string;
+  call: (...args: any[]) => Action;
+}
+
+const actionTypes = (namespace: string): ActionTypes => ({
+  start: `${namespace}/FETCH_REQUESTED`,
+  failed: `${namespace}/FETCH_FAILED`,
+  succeed: `${namespace}/FETCH_SUCCEED`,
+  begin: `${namespace}/FETCH_BEGIN`,
+  call: (...args) => ({
+    type: `${namespace}/FETCH_BEGIN`,
+    args,
+  }),
+});
+
+export type useFetchState = {
+  data: any,
+  loading: boolean,
+  error: Error | null,
 };
 
-const actionTypes = {
-  startFetch: 'FETCH_REQUESTED',
-  fetchInProgress: 'FETCH_IN_PROGRESS',
-  fetchSucceed: 'FETCH_SUCCEED',
-  fetchFailed: 'FETCH_FAILED',
-};
-
-export const useFetch = (saga: Saga, modelFactory?: (types: typeof actionTypes) => Model<any>): [useFetchState, { startFetch: Function, dispatch: Function }] => {
-  const model = modelFactory ? modelFactory(actionTypes) : {};
+export const useFetchPlugin = (namespace: string = '', saga: Saga): [ActionTypes, Plugin] => {
+  const actions = actionTypes(namespace);
 
   const fetchDataSaga = useCallback(function* (action, { call, put }) {
     yield put({
-      type: actionTypes.fetchInProgress,
+      type: actions.start,
     });
 
     try {
       const data = yield call(saga, ...action.args);
       yield put({
-        type: actionTypes.fetchSucceed,
+        type: actions.succeed,
         data,
       });
     } catch(error) {
       yield put({
-        type: actionTypes.fetchFailed,
+        type: actions.failed,
         error,
       });
     }
-  }, [saga]);
+  }, [saga, namespace]);
 
-  const [state, dispatch] = useSaga<any | useFetchState>(extendModel({
+  return [actions, new Plugin(namespace, {
     state: {
       loading: false,
       data: null,
       error: null,
     },
     reducers: {
-      [actionTypes.fetchSucceed]: (_, { data }) => {
+      [actions.succeed]: (_, { data }) => {
         return {
           loading: false,
           error: null,
           data,
         }
       },
-      [actionTypes.fetchFailed]: (_, { error }) => {
+      [actions.failed]: (_, { error }) => {
         return {
           data: null,
           loading: false,
           error,
         }
       },
-      [actionTypes.fetchInProgress]: (state) => {
+      [actions.start]: (state) => {
         return {
           ...state,
+          error: null,
           loading: true,
         }
       },
     },
     effects: {
-      [actionTypes.startFetch]: fetchDataSaga,
+      [actions.begin]: fetchDataSaga,
     },
-  }, model));
-
-  return [state, {
-    startFetch: (...args) => dispatch({ type: actionTypes.startFetch, args, }),
-    dispatch,
-  }];
-};
+  })];
+}

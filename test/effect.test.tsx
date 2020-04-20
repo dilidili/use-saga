@@ -1,4 +1,4 @@
-import useSaga, { useFetch, } from '../src';
+import useSaga, { useFetchPlugin, useFetchState } from '../src';
 import React from 'react';
 import renderer from 'react-test-renderer';
 
@@ -14,10 +14,6 @@ test('put effect can trigger another effect', () => {
           yield put({
             type: 'toTwo',
           });
-
-          yield setState({
-            count: 1,
-          }); 
         },
         toTwo: function *(_, { setState }) {
           yield setState({ count: 2 });
@@ -42,22 +38,20 @@ test('put effect can trigger another effect', () => {
   expect(tree).toMatchSnapshot();
 });
 
-test('useFetch effect can combine with a custom model', () => {
+test('useFetch plugin', () => {
   const Test: React.FC = () => {
-    const [fetchUser, { startFetch, dispatch }] = useFetch(function *(id) { return { id, } }, (fetchTypes) => ({
-      effects: {
-        [fetchTypes.fetchSucceed]: function *(_, { setState }) {
-          yield setState({
-            data: 'target',
-            error: null,
-            loading: false,
-          });
-        },
-      },
-    }));
+    const [fetchUserActions, fetchUserPlugin] = useFetchPlugin('fetchUser', function *(id) { return { id, } });
 
-    return <div onClick={() => startFetch(1)}>
-      <div>{fetchUser.data}</div>
+    const [state, dispatch] = useSaga<{
+      fetchUser: useFetchState,
+    }>({
+      plugins: [
+        fetchUserPlugin,
+      ],
+    });
+
+    return <div onClick={() => dispatch(fetchUserActions.call('target'))}>
+      <div>{state.fetchUser.data ? state.fetchUser.data.id : ''}</div>
     </div>
   };
 
