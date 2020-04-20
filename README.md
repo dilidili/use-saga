@@ -86,11 +86,18 @@ const Test: React.FC = () => {
 ## Use useFetch Effect
 ```jsx
   const Test: React.FC = () => {
-    const [fetchUser, { start }] = useFetch(Api.fetchUser);
+    const [fetchUserActions, fetchUserPlugin] = useFetchPlugin('fetchUser', function *(id) { return { id, } });
 
-    return <div onClick={() => start()}>
-      <div>{fetchUser.error ? 'error' : fetchUser.data ? fetchUser.data.id : 'empty'}</div>
-      <div>{fetchUser.loading ? 'loading' : 'complete'}</div>
+    const [state, dispatch] = useSaga<{
+      fetchUser: useFetchState,
+    }>({
+      plugins: [
+        fetchUserPlugin,
+      ],
+    });
+
+    return <div onClick={() => dispatch(fetchUserActions.call('target'))}>
+      <div>{state.fetchUser.data ? state.fetchUser.data.id : ''}</div>
     </div>
   };
 ```
